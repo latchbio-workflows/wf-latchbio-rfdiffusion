@@ -94,14 +94,14 @@ def task(
     if contig_provide_seq:
         command.append(f"contigmap.provide_seq=[{contig_provide_seq}]")
 
-    if contig_inpaint_str_strand:
-        command.append(f"contigmap.inpaint_str_strand=[{contig_inpaint_str_strand}]")
-
     if contig_inpaint_str:
         command.append(f"contigmap.inpaint_str=[{contig_inpaint_str}]")
 
+    if contig_inpaint_str_helix:
+        command.append(f"contigmap.inpaint_str_helix=[{contig_inpaint_str_helix}]")
+
     if contig_length:
-        command.append(f"contigmap.length=[{contig_length}]")
+        command.append(f"contigmap.length={contig_length}")
 
     if hotspot_residues_binder:
         command.append(f"ppi.hotspot_res=[{hotspot_residues_binder}]")
