@@ -47,7 +47,7 @@ flow = [
         "Generation",
         Text("Generation in RFdiffusion focuses on creating new protein structures from scratch."),
         Fork(
-            "Generation",
+            "generation",
             "Select generation method",
             UNCONDITIONAL=ForkBranch("Unconditional Protein Generation", Text("Creates novel protein structures without any specific constraints or input motifs. Only requires a `contig_string`.")), # just needs a contig_string
             SYMMETRIC_OLIGOMERS=ForkBranch("Symmetric Oligomers Generation",
@@ -60,9 +60,10 @@ flow = [
         Text("Design in RFDiffusion involves modifying or creating proteins with specific functional or structural constraints."),
         Params(
             "input_pdb",
+            "contig_length",
         ),
         Fork(
-            "Design",
+            "design",
             "Select design generation method",
             MOTIF_SCAFFOLDING=ForkBranch("Motif Scaffolding", Text("Incorporates a given structural motif into a larger protein scaffold, useful for designing proteins with specific functional elements. Only requires the above PDB file.")), # just needs a PDB
             BINDER_DESIGN=ForkBranch("Binder Design", Text("Creates protein binders that can interact with a specified target protein, often used for developing therapeutic proteins or research tools."),
@@ -71,23 +72,27 @@ flow = [
                                              Text("Designs protein-protein interactions (PPIs) while constraining the overall fold of the designed protein, allowing for more controlled interface design."),
                                              Params(
                                                 "hotspot_residues_ppi",
-                                                "contig_inpaint_str",
-                                                "contig_inpaint_str_strand",
-                                                "contig_inpaint_str_helix",
-                                                "scaffoldguided",
-                                                "scaffoldguided_target_pdb",
-                                                "scaffoldguided_mask_loops",
-                                                "scaffold_dir",
                                                 "target_path",
                                                 "target_ss",
-                                                "target_adj")),
+                                                "target_adj"),
+                                                Spoiler(
+                                                    "Inpaint Parameters",
+                                                    Params("contig_inpaint_str",
+                                                            "contig_inpaint_str_strand",
+                                                            "contig_inpaint_str_helix")
+                                                ),
+                                                Spoiler(
+                                                    "Scaffold Guided Parameters",
+                                                    Params("scaffoldguided",
+                                                            "scaffoldguided_target_pdb",
+                                                            "scaffoldguided_mask_loops",
+                                                            "scaffold_dir"))),
             SYMMETRIC_MOTIF_SCAFFOLDING=ForkBranch("Symmetric Motif Scaffolding",
                                                    Text("Combines motif scaffolding with symmetry generation to create symmetric protein complexes containing specific structural motifs."),
                                                    Params("symmetry_motif")),
             DESIGN_DIVERSIFICATION=ForkBranch("Design Diversification",
                                               Text("Generates variations of an existing protein design by partially perturbing and then refining its structure, useful for exploring design space around a promising candidate."),
                                               Params("partial_T",
-                                                     "contig_length",
                                                     "contig_provide_seq")),
         )
     ),
@@ -101,13 +106,6 @@ flow = [
                 "noise_scale_frame",
             ),
         ),
-        # Spoiler(
-        #     "Extra Contig Parameters",
-        #     Params(
-        #         "contig_length",
-        #         "contig_provide_seq"
-        #     ),
-        # ),
         Spoiler(
             "Auxiliary Potentials",
             Params("guiding_potentials",
@@ -128,13 +126,14 @@ flow = [
 metadata = LatchMetadata(
     display_name="RFdiffusion",
     author=LatchAuthor(
-        name="LatchBio",
+        name="Watson, J.L., Juergens, D., Bennett, N.R. et al.",
     ),
+    tags=["Protein Engineering"],
     parameters={
         "run_name": LatchParameter(
             display_name="Run Name",
             description="Name of the run",
-            batch_table_column=True,
+            batch_table_column=False,
             rules=[
                 LatchRule(
                     regex=r"^[a-zA-Z0-9_-]+$",
@@ -145,165 +144,165 @@ metadata = LatchMetadata(
         "output_directory": LatchParameter(
             display_name="Output Directory",
             description="Directory to save output files",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "num_designs": LatchParameter(
             display_name="Number of Designs",
             description="Number of designs to generate",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_string": LatchParameter(
             display_name="Contig String",
             description="Contig string specifying protein design (e.g., '5-15/A10-25/30-40')",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_length": LatchParameter(
             display_name="Contig Length",
             description="To ensure the length was always e.g. 55 residues, this can be specified with contigmap.length=55-55",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_provide_seq": LatchParameter(
             display_name="Contig provide_seq",
             description="For partial diffusion, keep parts of the sequence of the diffused chain fixed. The contigmap.provide_seq input is zero-indexed, and you can provide a range (so 100-119 is an inclusive range of 20, unmasking the whole sequence of the peptide).",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_inpaint_str_strand": LatchParameter(
             display_name="Contig inpaint_str_helix",
             description="Mask the structure on this peptide, but adopt a beta (strand) secondary structure:",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_inpaint_str_helix": LatchParameter(
             display_name="Contig inpaint_str_helix",
             description="Mask the structure on this peptide, but adopt a helix secondary structure:",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "contig_inpaint_str": LatchParameter(
             display_name="Contig inpaint_str",
             description="Mask the 3D structure.",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "scaffoldguided": LatchParameter(
             display_name="Scaffold Guided",
             description="scaffoldguided.scaffoldguided",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "scaffoldguided_target_pdb": LatchParameter(
             display_name="Scaffold Guided target_pdb",
             description="Mask the 3D structure.",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "scaffoldguided_mask_loops": LatchParameter(
             display_name="Scaffold Guided mask_loops",
             description="scaffoldguided.mask_loops",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "input_pdb": LatchParameter(
             display_name="Input PDB File",
             description="PDB file for motif scaffolding or binder design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         # Duplicate param for symmetry
         "symmetry_motif": LatchParameter(
             display_name="Symmetry Type",
             description="Type of symmetry for oligomer design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "symmetry_gen": LatchParameter(
             display_name="Symmetry Type",
             description="Type of symmetry for oligomer design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         # Duplicate param for hotspot residues
         "hotspot_residues_binder": LatchParameter(
             display_name="Hotspot Residues",
             description="List of hotspot residues for binder design (e.g., 'A30,A33,A34')",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "hotspot_residues_ppi": LatchParameter(
             display_name="Hotspot Residues",
             description="List of hotspot residues for PPI",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "scaffold_dir": LatchParameter(
             display_name="Scaffold Directory",
             description="Directory containing scaffold files for guided design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "target_path": LatchParameter(
             display_name="Target PDB Path",
             description="Path to the target PDB file for fold conditioning",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "target_ss": LatchParameter(
             display_name="Target Secondary Structure",
             description="Path to target secondary structure file",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "target_adj": LatchParameter(
             display_name="Target Adjacency",
             description="Path to target adjacency file",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "partial_T": LatchParameter(
             display_name="Partial Diffusion Timestep",
             description="Timestep for partial diffusion (if enabled)",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "final_step": LatchParameter(
             display_name="Final Diffusion Step",
             description="Final step for the diffusion trajectory",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "noise_scale_ca": LatchParameter(
             display_name="Noise Scale (CA)",
             description="Noise scale for translations",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "noise_scale_frame": LatchParameter(
             display_name="Noise Scale (Frame)",
             description="Noise scale for rotations",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "guiding_potentials": LatchParameter(
             display_name="Guiding Potentials",
             description="List of guiding potentials to use (e.g., 'monomer_ROG,olig_contacts')",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "ckpt_override_path": LatchParameter(
             display_name="Checkpoint Override Path",
             description="Path to a specific model checkpoint (if needed)",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
         "potentials_olig_intra_all": LatchParameter(
             display_name="Apply Intra-Chain Potentials to All Residues",
             description="Apply intra-chain potentials to all residues in oligomer design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         "potentials_olig_inter_all": LatchParameter(
             display_name="Apply Inter-Chain Potentials to All Residues",
             description="Apply inter-chain potentials to all residues in oligomer design",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         "potentials_guide_scale": LatchParameter(
             display_name="Guiding Potential Scale",
             description="Scale factor for guiding potentials",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         "potentials_guide_decay": LatchParameter(
             display_name="Guiding Potential Decay",
             description="Decay type for guiding potentials (e.g., quadratic)",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
 
         "potentials_substrate": LatchParameter(
             display_name="Potentials Substrate",
             description="Global option for potentials.substrate",
-            batch_table_column=True,
+            batch_table_column=False,
         ),
     },
     flow=flow,
@@ -313,8 +312,10 @@ metadata = LatchMetadata(
 def rfdiffusion_workflow(
     run_name: str,
     output_directory: LatchOutputDir,
-    num_designs: int,
     contig_string: str,
+    num_designs: int = 5,
+    generation: str = "UNCONDITIONAL",
+    design: str = "MOTIF_SCAFFOLDING",
     contig_length: Optional[str] = None,
     contig_provide_seq: Optional[str] = None,
     input_pdb: Optional[LatchFile] = None,
@@ -508,7 +509,8 @@ LaunchPlan(
         "symmetry_gen": SymmetryType.CYCLIC_6,
         "guiding_potentials": ["type:olig_contacts", "weight_intra:1", "weight_inter:0.1"],
         "potentials_guide_scale": 2.0,
-        "potentials_guide_decay": PotentialDecayType.QUADRATIC
+        "potentials_guide_decay": PotentialDecayType.QUADRATIC,
+        "generation": "SYMMETRIC_OLIGOMERS"
     }
 )
 
@@ -520,6 +522,7 @@ LaunchPlan(
         "run_name": "design_unconditional",
         "contig_string": "100-200",
         "num_designs": 10,
+        "generation": "UNCONDITIONAL"
     }
 )
 
@@ -531,6 +534,7 @@ LaunchPlan(
         "contig_string": "10-40/A163-181/10-40",
         "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/5TPN.pdb"),
         "num_designs": 10,
+        "design": "MOTIF_SCAFFOLDING"
     }
 )
 
@@ -543,6 +547,7 @@ LaunchPlan(
         "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/1YCR.pdb"),
         "num_designs": 2,
         "contig_length": "70-120",
+        "design": "MOTIF_SCAFFOLDING"
     }
 )
 
@@ -556,7 +561,8 @@ LaunchPlan(
         "num_designs": 2,
         "potentials_guide_scale": 1.0,
         "guiding_potentials": ["type:substrate_contacts", "s:1,r_0:8", "rep_r_0:5.0", "rep_s:2", "rep_r_min:1"],
-        "potentials_substrate": "LLK"
+        "potentials_substrate": "LLK",
+        "design": "MOTIF_SCAFFOLDING"
     }
 )
 
@@ -570,6 +576,7 @@ LaunchPlan(
         "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/2KL8.pdb"),
         "num_designs": 2,
         "partial_T": 10,
+        "design": "DESIGN_DIVERSIFICATION"
     }
 )
 
@@ -583,7 +590,8 @@ LaunchPlan(
         "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/peptide_complex_ideal_helix.pdb"),
         "num_designs": 2,
         "partial_T": 10,
-        "contig_provide_seq": "172-177,200-205"
+        "contig_provide_seq": "172-177,200-205",
+        "design": "DESIGN_DIVERSIFICATION"
     }
 )
 
@@ -599,7 +607,7 @@ LaunchPlan(
         "num_designs": 2,
         "noise_scale_ca": 0.0,
         "noise_scale_frame": 0.0,
-
+        "design": "FOLD_CONDITIONING_PPI"
     }
 )
 
@@ -613,7 +621,8 @@ LaunchPlan(
         "num_designs": 2,
         "contig_inpaint_str": "B165-178",
         "scaffoldguided": True,
-        "contig_inpaint_str_helix": "B165-178"
+        "contig_inpaint_str_helix": "B165-178",
+        "design": "FOLD_CONDITIONING_PPI"
     }
 )
 

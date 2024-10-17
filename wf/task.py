@@ -177,11 +177,11 @@ def task(
         command.append(f"inference.ckpt_override_path={ckpt_override_path.local_path}")
 
     try:
+        print("RUNNING COMMAND: ")
+        print(" ".join(command))
         subprocess.run(command, check=True)
     except Exception as e:
         print("FAILED")
         print(e)
-        time.sleep(6000)
-
     print("Returning results")
     return LatchOutputDir(str("/root/outputs"), output_directory.remote_path)
