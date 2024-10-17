@@ -39,9 +39,9 @@ flow = [
         "General Parameters",
         Params(
             "run_name",
-            "output_directory",
             "contig_string",
             "num_designs",
+            "output_directory",
         )),
     Section(
         "Generation",
@@ -311,8 +311,8 @@ metadata = LatchMetadata(
 @workflow(metadata)
 def rfdiffusion_workflow(
     run_name: str,
-    output_directory: LatchOutputDir,
     contig_string: str,
+    output_directory: LatchOutputDir = LatchOutputDir("latch:///RFDiffusion"),
     num_designs: int = 5,
     generation: str = "UNCONDITIONAL",
     design: str = "MOTIF_SCAFFOLDING",
