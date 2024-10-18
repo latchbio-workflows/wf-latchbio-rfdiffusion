@@ -1,11 +1,13 @@
-from typing import Optional, List
 from enum import Enum
+from typing import List, Optional
 
-from latch.resources.workflow import workflow
 from latch.resources.launch_plan import LaunchPlan
+from latch.resources.workflow import workflow
 from latch.types.directory import LatchDir, LatchOutputDir
 from latch.types.file import LatchFile
 from latch.types.metadata import (
+    Fork,
+    ForkBranch,
     LatchAuthor,
     LatchMetadata,
     LatchParameter,
@@ -13,13 +15,11 @@ from latch.types.metadata import (
     Params,
     Section,
     Spoiler,
-    Fork,
-    ForkBranch,
-    Text
+    Text,
 )
 
+from wf.task import rfdif_task
 
-from wf.task import task
 
 class PotentialDecayType(Enum):
     CONSTANT = "constant"
@@ -27,12 +27,14 @@ class PotentialDecayType(Enum):
     QUADRATIC = "quadratic"
     CUBIC = "cubic"
 
+
 class SymmetryType(Enum):
     CYCLIC_4 = "C4"
     CYCLIC_6 = "C6"
     DIHEDRAL_2 = "D2"
     DIHEDRAL_4 = "D4"
     TETRAHEDRAL = "tetrahedral"
+
 
 flow = [
     Section(
@@ -42,22 +44,36 @@ flow = [
             "contig_string",
             "num_designs",
             "output_directory",
-        )),
+        ),
+    ),
     Section(
         "Generation",
-        Text("Generation in RFdiffusion focuses on creating new protein structures from scratch."),
+        Text(
+            "Generation in RFdiffusion focuses on creating new protein structures from scratch."
+        ),
         Fork(
             "generation",
             "Select generation method",
-            UNCONDITIONAL=ForkBranch("Unconditional Protein Generation", Text("Creates novel protein structures without any specific constraints or input motifs. Only requires a `contig_string`.")), # just needs a contig_string
-            SYMMETRIC_OLIGOMERS=ForkBranch("Symmetric Oligomers Generation",
-                                           Text("Generates protein complexes with defined symmetry, such as cyclic, dihedral, or tetrahedral arrangements. This is done by symmetrising the noise we sample at t=T, and symmetrising the input at every timestep."),
-                                           Params("symmetry_gen")),
-        )
+            UNCONDITIONAL=ForkBranch(
+                "Unconditional Protein Generation",
+                Text(
+                    "Creates novel protein structures without any specific constraints or input motifs. Only requires a `contig_string`."
+                ),
+            ),  # just needs a contig_string
+            SYMMETRIC_OLIGOMERS=ForkBranch(
+                "Symmetric Oligomers Generation",
+                Text(
+                    "Generates protein complexes with defined symmetry, such as cyclic, dihedral, or tetrahedral arrangements. This is done by symmetrising the noise we sample at t=T, and symmetrising the input at every timestep."
+                ),
+                Params("symmetry_gen"),
+            ),
+        ),
     ),
     Section(
         "Design",
-        Text("Design in RFDiffusion involves modifying or creating proteins with specific functional or structural constraints."),
+        Text(
+            "Design in RFDiffusion involves modifying or creating proteins with specific functional or structural constraints."
+        ),
         Params(
             "input_pdb",
             "contig_length",
@@ -65,36 +81,60 @@ flow = [
         Fork(
             "design",
             "Select design generation method",
-            MOTIF_SCAFFOLDING=ForkBranch("Motif Scaffolding", Text("Incorporates a given structural motif into a larger protein scaffold, useful for designing proteins with specific functional elements. Only requires the above PDB file.")), # just needs a PDB
-            BINDER_DESIGN=ForkBranch("Binder Design", Text("Creates protein binders that can interact with a specified target protein, often used for developing therapeutic proteins or research tools."),
-                                     Params("hotspot_residues_binder")),
-            FOLD_CONDITIONING_PPI=ForkBranch("Fold Conditioning (PPI)",
-                                             Text("Designs protein-protein interactions (PPIs) while constraining the overall fold of the designed protein, allowing for more controlled interface design."),
-                                             Params(
-                                                "hotspot_residues_ppi",
-                                                "target_path",
-                                                "target_ss",
-                                                "target_adj"),
-                                                Spoiler(
-                                                    "Inpaint Parameters",
-                                                    Params("contig_inpaint_str",
-                                                            "contig_inpaint_str_strand",
-                                                            "contig_inpaint_str_helix")
-                                                ),
-                                                Spoiler(
-                                                    "Scaffold Guided Parameters",
-                                                    Params("scaffoldguided",
-                                                            "scaffoldguided_target_pdb",
-                                                            "scaffoldguided_mask_loops",
-                                                            "scaffold_dir"))),
-            SYMMETRIC_MOTIF_SCAFFOLDING=ForkBranch("Symmetric Motif Scaffolding",
-                                                   Text("Combines motif scaffolding with symmetry generation to create symmetric protein complexes containing specific structural motifs."),
-                                                   Params("symmetry_motif")),
-            DESIGN_DIVERSIFICATION=ForkBranch("Design Diversification",
-                                              Text("Generates variations of an existing protein design by partially perturbing and then refining its structure, useful for exploring design space around a promising candidate."),
-                                              Params("partial_T",
-                                                    "contig_provide_seq")),
-        )
+            MOTIF_SCAFFOLDING=ForkBranch(
+                "Motif Scaffolding",
+                Text(
+                    "Incorporates a given structural motif into a larger protein scaffold, useful for designing proteins with specific functional elements. Only requires the above PDB file."
+                ),
+            ),  # just needs a PDB
+            BINDER_DESIGN=ForkBranch(
+                "Binder Design",
+                Text(
+                    "Creates protein binders that can interact with a specified target protein, often used for developing therapeutic proteins or research tools."
+                ),
+                Params("hotspot_residues_binder"),
+            ),
+            FOLD_CONDITIONING_PPI=ForkBranch(
+                "Fold Conditioning (PPI)",
+                Text(
+                    "Designs protein-protein interactions (PPIs) while constraining the overall fold of the designed protein, allowing for more controlled interface design."
+                ),
+                Params(
+                    "hotspot_residues_ppi", "target_path", "target_ss", "target_adj"
+                ),
+                Spoiler(
+                    "Inpaint Parameters",
+                    Params(
+                        "contig_inpaint_str",
+                        "contig_inpaint_str_strand",
+                        "contig_inpaint_str_helix",
+                    ),
+                ),
+                Spoiler(
+                    "Scaffold Guided Parameters",
+                    Params(
+                        "scaffoldguided",
+                        "scaffoldguided_target_pdb",
+                        "scaffoldguided_mask_loops",
+                        "scaffold_dir",
+                    ),
+                ),
+            ),
+            SYMMETRIC_MOTIF_SCAFFOLDING=ForkBranch(
+                "Symmetric Motif Scaffolding",
+                Text(
+                    "Combines motif scaffolding with symmetry generation to create symmetric protein complexes containing specific structural motifs."
+                ),
+                Params("symmetry_motif"),
+            ),
+            DESIGN_DIVERSIFICATION=ForkBranch(
+                "Design Diversification",
+                Text(
+                    "Generates variations of an existing protein design by partially perturbing and then refining its structure, useful for exploring design space around a promising candidate."
+                ),
+                Params("partial_T", "contig_provide_seq"),
+            ),
+        ),
     ),
     Section(
         "Advanced Options",
@@ -108,12 +148,14 @@ flow = [
         ),
         Spoiler(
             "Auxiliary Potentials",
-            Params("guiding_potentials",
-                    "potentials_olig_intra_all",
-                    "potentials_olig_inter_all",
-                    "potentials_guide_scale",
-                    "potentials_guide_decay",
-                    "potentials_substrate"),
+            Params(
+                "guiding_potentials",
+                "potentials_olig_intra_all",
+                "potentials_olig_inter_all",
+                "potentials_guide_scale",
+                "potentials_guide_decay",
+                "potentials_substrate",
+            ),
         ),
         Spoiler(
             "Model Checkpoint",
@@ -128,6 +170,8 @@ metadata = LatchMetadata(
     author=LatchAuthor(
         name="Watson, J.L., Juergens, D., Bennett, N.R. et al.",
     ),
+    repository="https://github.com/latchbio-workflows/wf-latchbio-rfdiffusion",
+    license="BSD",
     tags=["Protein Engineering"],
     parameters={
         "run_name": LatchParameter(
@@ -201,7 +245,6 @@ metadata = LatchMetadata(
             description="PDB file for motif scaffolding or binder design",
             batch_table_column=False,
         ),
-
         # Duplicate param for symmetry
         "symmetry_motif": LatchParameter(
             display_name="Symmetry Type",
@@ -213,7 +256,6 @@ metadata = LatchMetadata(
             description="Type of symmetry for oligomer design",
             batch_table_column=False,
         ),
-
         # Duplicate param for hotspot residues
         "hotspot_residues_binder": LatchParameter(
             display_name="Hotspot Residues",
@@ -280,25 +322,21 @@ metadata = LatchMetadata(
             description="Apply intra-chain potentials to all residues in oligomer design",
             batch_table_column=False,
         ),
-
         "potentials_olig_inter_all": LatchParameter(
             display_name="Apply Inter-Chain Potentials to All Residues",
             description="Apply inter-chain potentials to all residues in oligomer design",
             batch_table_column=False,
         ),
-
         "potentials_guide_scale": LatchParameter(
             display_name="Guiding Potential Scale",
             description="Scale factor for guiding potentials",
             batch_table_column=False,
         ),
-
         "potentials_guide_decay": LatchParameter(
             display_name="Guiding Potential Decay",
             description="Decay type for guiding potentials (e.g., quadratic)",
             batch_table_column=False,
         ),
-
         "potentials_substrate": LatchParameter(
             display_name="Potentials Substrate",
             description="Global option for potentials.substrate",
@@ -307,6 +345,7 @@ metadata = LatchMetadata(
     },
     flow=flow,
 )
+
 
 @workflow(metadata)
 def rfdiffusion_workflow(
@@ -345,12 +384,23 @@ def rfdiffusion_workflow(
     scaffoldguided: bool = False,
     scaffoldguided_mask_loops: bool = False,
     scaffoldguided_target_pdb: bool = False,
-
 ) -> LatchOutputDir:
-    """RFdiffusion: Advanced Protein Structure Generation and Design
+    """
+    RFdiffusion: Advanced Protein Structure Generation and Design
 
     <p align="center">
         <img src="https://github.com/RosettaCommons/RFdiffusion/raw/main/img/diffusion_protein_gradient_2.jpg" alt="RFdiffusion protein gradient" width="800px"/>
+    </p>
+
+    <html>
+    <p align="center">
+    <img src="https://user-images.githubusercontent.com/31255434/182289305-4cc620e3-86ae-480f-9b61-6ca83283caa5.jpg" alt="Latch Verified" width="100">
+    </p>
+
+    <p align="center">
+    <strong>
+    Latch Verified
+    </strong>
     </p>
 
     # RFdiffusion
@@ -460,7 +510,7 @@ def rfdiffusion_workflow(
 
 
     """
-    return task(
+    return rfdif_task(
         run_name=run_name,
         output_directory=output_directory,
         num_designs=num_designs,
@@ -493,7 +543,7 @@ def rfdiffusion_workflow(
         scaffoldguided=scaffoldguided,
         scaffoldguided_mask_loops=scaffoldguided_mask_loops,
         scaffoldguided_target_pdb=scaffoldguided_target_pdb,
-        potentials_substrate=potentials_substrate
+        potentials_substrate=potentials_substrate,
     )
 
 
@@ -507,11 +557,15 @@ LaunchPlan(
         "potentials_olig_inter_all": True,
         "potentials_olig_intra_all": True,
         "symmetry_gen": SymmetryType.CYCLIC_6,
-        "guiding_potentials": ["type:olig_contacts", "weight_intra:1", "weight_inter:0.1"],
+        "guiding_potentials": [
+            "type:olig_contacts",
+            "weight_intra:1",
+            "weight_inter:0.1",
+        ],
         "potentials_guide_scale": 2.0,
         "potentials_guide_decay": PotentialDecayType.QUADRATIC,
-        "generation": "SYMMETRIC_OLIGOMERS"
-    }
+        "generation": "SYMMETRIC_OLIGOMERS",
+    },
 )
 
 
@@ -522,8 +576,8 @@ LaunchPlan(
         "run_name": "design_unconditional",
         "contig_string": "100-200",
         "num_designs": 10,
-        "generation": "UNCONDITIONAL"
-    }
+        "generation": "UNCONDITIONAL",
+    },
 )
 
 LaunchPlan(
@@ -532,10 +586,12 @@ LaunchPlan(
     {
         "run_name": "design_motifscaffolding",
         "contig_string": "10-40/A163-181/10-40",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/5TPN.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/5TPN.pdb"
+        ),
         "num_designs": 10,
-        "design": "MOTIF_SCAFFOLDING"
-    }
+        "design": "MOTIF_SCAFFOLDING",
+    },
 )
 
 LaunchPlan(
@@ -544,11 +600,13 @@ LaunchPlan(
     {
         "run_name": "design_motifscaffolding_with_target",
         "contig_string": "A25-109/0 0-70/B17-29/0-70",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/1YCR.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/1YCR.pdb"
+        ),
         "num_designs": 2,
         "contig_length": "70-120",
-        "design": "MOTIF_SCAFFOLDING"
-    }
+        "design": "MOTIF_SCAFFOLDING",
+    },
 )
 
 LaunchPlan(
@@ -557,13 +615,21 @@ LaunchPlan(
     {
         "run_name": "design_enzyme",
         "contig_string": "10-100/A1083-1083/10-100/A1051-1051/10-100/A1180-1180/10-100",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/5an7.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/5an7.pdb"
+        ),
         "num_designs": 2,
         "potentials_guide_scale": 1.0,
-        "guiding_potentials": ["type:substrate_contacts", "s:1,r_0:8", "rep_r_0:5.0", "rep_s:2", "rep_r_min:1"],
+        "guiding_potentials": [
+            "type:substrate_contacts",
+            "s:1,r_0:8",
+            "rep_r_0:5.0",
+            "rep_s:2",
+            "rep_r_min:1",
+        ],
         "potentials_substrate": "LLK",
-        "design": "MOTIF_SCAFFOLDING"
-    }
+        "design": "MOTIF_SCAFFOLDING",
+    },
 )
 
 
@@ -573,11 +639,13 @@ LaunchPlan(
     {
         "run_name": "design_partialdiffusion",
         "contig_string": "79-79",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/2KL8.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/2KL8.pdb"
+        ),
         "num_designs": 2,
         "partial_T": 10,
-        "design": "DESIGN_DIVERSIFICATION"
-    }
+        "design": "DESIGN_DIVERSIFICATION",
+    },
 )
 
 
@@ -587,12 +655,14 @@ LaunchPlan(
     {
         "run_name": "design_partialdiffusion_multipleseq",
         "contig_string": "172-172/0 34-34",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/peptide_complex_ideal_helix.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/peptide_complex_ideal_helix.pdb"
+        ),
         "num_designs": 2,
         "partial_T": 10,
         "contig_provide_seq": "172-177,200-205",
-        "design": "DESIGN_DIVERSIFICATION"
-    }
+        "design": "DESIGN_DIVERSIFICATION",
+    },
 )
 
 
@@ -603,12 +673,14 @@ LaunchPlan(
         "run_name": "design_ppi",
         "contig_string": "A1-150/0 70-100",
         "hotspot_residues_ppi": "A59,A83,A91",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/insulin_target.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/insulin_target.pdb"
+        ),
         "num_designs": 2,
         "noise_scale_ca": 0.0,
         "noise_scale_frame": 0.0,
-        "design": "FOLD_CONDITIONING_PPI"
-    }
+        "design": "FOLD_CONDITIONING_PPI",
+    },
 )
 
 LaunchPlan(
@@ -617,12 +689,13 @@ LaunchPlan(
     {
         "run_name": "design_ppi_flexible_peptide_with_secondarystructure_specification",
         "contig_string": "70-100/0 B165-178",
-        "input_pdb": LatchFile("s3://latch-public/test-data/36431/examples/tau_peptide.pdb"),
+        "input_pdb": LatchFile(
+            "s3://latch-public/proteinengineering/rfdiffusion/tau_peptide.pdb"
+        ),
         "num_designs": 2,
         "contig_inpaint_str": "B165-178",
         "scaffoldguided": True,
         "contig_inpaint_str_helix": "B165-178",
-        "design": "FOLD_CONDITIONING_PPI"
-    }
+        "design": "FOLD_CONDITIONING_PPI",
+    },
 )
-

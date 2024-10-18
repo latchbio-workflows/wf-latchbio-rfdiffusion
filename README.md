@@ -4,6 +4,17 @@
     <img src="https://github.com/RosettaCommons/RFdiffusion/raw/main/img/diffusion_protein_gradient_2.jpg" alt="RFdiffusion protein gradient" width="800px"/>
 </p>
 
+<html>
+<p align="center">
+<img src="https://user-images.githubusercontent.com/31255434/182289305-4cc620e3-86ae-480f-9b61-6ca83283caa5.jpg" alt="Latch Verified" width="100">
+</p>
+
+<p align="center">
+<strong>
+Latch Verified
+</strong>
+</p>
+
 # RFdiffusion
 
 RFdiffusion is a cutting-edge, open-source method for protein structure generation and design. It leverages diffusion models, a class of deep generative models, to create novel protein structures with or without conditional information such as motifs or targets. Developed by a team of researchers from the University of Washington, RFdiffusion builds upon the architecture and trained parameters of RoseTTAFold, extending its capabilities to address a wide range of protein engineering challenges.
@@ -107,3 +118,4 @@ For help and support, please create GitHub issues on the [RFdiffusion repository
 <p align="center">
     <img src="https://github.com/RosettaCommons/RFdiffusion/raw/main/img/partial.png" alt="RFdiffusion protein gradient" width="300px"/>
 </p>
+

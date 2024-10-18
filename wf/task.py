@@ -1,9 +1,9 @@
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Optional, List, Union
 from enum import Enum
+from pathlib import Path
+from typing import List, Optional, Union
 
 from latch.executions import rename_current_execution
 from latch.resources.tasks import small_gpu_task, v100_x1_task
@@ -12,6 +12,7 @@ from latch.types.file import LatchFile
 
 sys.stdout.reconfigure(line_buffering=True)
 
+
 class SymmetryType(Enum):
     CYCLIC_4 = "C4"
     CYCLIC_6 = "C6"
@@ -19,14 +20,16 @@ class SymmetryType(Enum):
     DIHEDRAL_4 = "D4"
     TETRAHEDRAL = "tetrahedral"
 
+
 class PotentialDecayType(Enum):
     CONSTANT = "constant"
     LINEAR = "linear"
     QUADRATIC = "quadratic"
     CUBIC = "cubic"
 
+
 @v100_x1_task
-def task(
+def rfdif_task(
     run_name: str,
     output_directory: LatchOutputDir,
     num_designs: int,
@@ -140,7 +143,9 @@ def task(
     # Handle symmetry options
     if symmetry_gen and symmetry_motif:
         if symmetry_gen != symmetry_motif:
-            raise ValueError("symmetry_gen and symmetry_motif must be the same if both are provided")
+            raise ValueError(
+                "symmetry_gen and symmetry_motif must be the same if both are provided"
+            )
         command.append(f"inference.symmetry={symmetry_gen.value}")
     elif symmetry_gen:
         command.append(f"inference.symmetry={symmetry_gen.value}")
@@ -171,7 +176,6 @@ def task(
 
     command.append(f"potentials.guide_scale={potentials_guide_scale}")
     command.append(f"potentials.guide_decay={potentials_guide_decay.value}")
-
 
     if ckpt_override_path:
         command.append(f"inference.ckpt_override_path={ckpt_override_path.local_path}")
